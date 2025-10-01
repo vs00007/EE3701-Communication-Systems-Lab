@@ -1,3 +1,4 @@
+All the credit goes to the original author: https://github.com/MeowLucian/SDR_Matlab_OFDM_802.11a
 # SDR_Matlab_OFDM_802.11a
 [![npm](https://img.shields.io/npm/l/express.svg)](https://github.com/MeowLucian/SDR_Matlab_OFDM_802.11a/blob/master/LICENSE)
 
