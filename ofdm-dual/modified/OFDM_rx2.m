@@ -137,12 +137,20 @@ RX_Payload_1_no_Equalizer = [RX_Payload_1_Frequency(7:11),RX_Payload_1_Frequency
 % Data carriers after equalization (pilots removed)
 RX_Payload_1_no_pilot = [RX_Payload_1_Frequency_Equalizer(7:11),RX_Payload_1_Frequency_Equalizer(13:25),RX_Payload_1_Frequency_Equalizer(27:32),RX_Payload_1_Frequency_Equalizer(34:39),RX_Payload_1_Frequency_Equalizer(41:53),RX_Payload_1_Frequency_Equalizer(55:59)]; % [1x48]
 RX_Payload_1_Final = pskdemod(RX_Payload_1_no_pilot,4,pi/4); % [1x48]
-RX_Payload_1_Final = decode_gray(RX_Payload_1_Final , 'gray');
+% RX_Payload_1_Final = decode_gray(RX_Payload_1_Final , 'gray');
+idx2 = (RX_Payload_1_Final == 2);
+idx3 = (RX_Payload_1_Final == 3);
+RX_Payload_1_Final(idx2) = 3;
+RX_Payload_1_Final(idx3) = 2;
 
 RX_Payload_2_no_Equalizer = [RX_Payload_2_Frequency(7:11),RX_Payload_2_Frequency(13:25),RX_Payload_2_Frequency(27:32),RX_Payload_2_Frequency(34:39),RX_Payload_2_Frequency(41:53),RX_Payload_2_Frequency(55:59)]; % [1x48]
 RX_Payload_2_no_pilot = [RX_Payload_2_Frequency_Equalizer(7:11),RX_Payload_2_Frequency_Equalizer(13:25),RX_Payload_2_Frequency_Equalizer(27:32),RX_Payload_2_Frequency_Equalizer(34:39),RX_Payload_2_Frequency_Equalizer(41:53),RX_Payload_2_Frequency_Equalizer(55:59)]; % [1x48]
 RX_Payload_2_Final = pskdemod(RX_Payload_2_no_pilot,4,pi/4); % [1x48]
-RX_Payload_2_Final = decode_gray(RX_Payload_2_Final , 'gray');
+% RX_Payload_2_Final = decode_gray(RX_Payload_2_Final , 'gray');
+idx2 = (RX_Payload_2_Final == 2);
+idx3 = (RX_Payload_2_Final == 3);
+RX_Payload_2_Final(idx2) = 3;
+RX_Payload_2_Final(idx3) = 2;
 
 %% BER calculation
 Error_bits = sum([abs(sign(Parameters_struct.data_Payload_1-RX_Payload_1_Final)),abs(sign(Parameters_struct.data_Payload_2-RX_Payload_2_Final))]);

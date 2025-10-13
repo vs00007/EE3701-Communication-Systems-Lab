@@ -8,7 +8,7 @@ LD = $(CC)
  
 MODEL  = plutoradioQPSKReceiverSimulinkExample
 TARGET = cgxe
-MODULE_SRCS 	= m_UIzktXqQH1UJHNoLKJcwx.c
+MODULE_SRCS 	= m_Vy8xGh9WJGSVoTt911H7G.c
 MODEL_SRC	= plutoradioQPSKReceiverSimulinkExample_cgxe.c
 MODEL_REG    = plutoradioQPSKReceiverSimulinkExample_cgxe_registry.c
 MAKEFILE    = plutoradioQPSKReceiverSimulinkExample_cgxe.mku
@@ -18,13 +18,13 @@ BUILDARGS   =
  
 
  
-USER_INCLUDES = -I"/Users/musicalmimmi/Documents/MATLAB/Examples/R2024a/plutoradio/QPSKReceiverWithADALMPLUTORadioSimulinkExample" -I"/Users/musicalmimmi/Documents/MATLAB/Examples/R2024a/plutoradio/QPSKReceiverWithADALMPLUTORadioSimulinkExample/slprj/_cprj" 
+USER_INCLUDES = -I"/Users/musicalmimmi/Desktop/IITH/Sem5/commlab/psk/modified/rx" -I"/Users/musicalmimmi/Desktop/IITH/Sem5/commlab/psk/modified/rx/slprj/_cprj" 
 MLSL_INCLUDES     = \
     -I"/Applications/MATLAB_R2024a.app/extern/include" \
     -I"/Applications/MATLAB_R2024a.app/simulink/include" \
     -I"/Applications/MATLAB_R2024a.app/rtw/c/src"
 
-THIRD_PARTY_INCLUDES = -I"/Users/musicalmimmi/Documents/MATLAB/Examples/R2024a/plutoradio/QPSKReceiverWithADALMPLUTORadioSimulinkExample/slprj/_cgxe/plutoradioQPSKReceiverSimulinkExample/src" 
+THIRD_PARTY_INCLUDES = -I"/Users/musicalmimmi/Desktop/IITH/Sem5/commlab/psk/modified/rx/slprj/_cgxe/plutoradioQPSKReceiverSimulinkExample/src" 
 
 INCLUDE_PATH = $(MLSL_INCLUDES) $(USER_INCLUDES) $(THIRD_PARTY_INCLUDES)
  
@@ -78,7 +78,7 @@ $(MEX_FILE_NAME): $(MAKEFILE) $(OBJS) $(MEXLIB)
 %.o :	%.cpp
 	$(CC) -c $(CFLAGS) $<
 
-signLib.o :	/Users/musicalmimmi/Documents/MATLAB/Examples/R2024a/plutoradio/QPSKReceiverWithADALMPLUTORadioSimulinkExample/slprj/_cgxe/plutoradioQPSKReceiverSimulinkExample/src/signLib.c
-	$(CC) -c $(CFLAGS) /Users/musicalmimmi/Documents/MATLAB/Examples/R2024a/plutoradio/QPSKReceiverWithADALMPLUTORadioSimulinkExample/slprj/_cgxe/plutoradioQPSKReceiverSimulinkExample/src/signLib.c
-%.o : /Users/musicalmimmi/Documents/MATLAB/Examples/R2024a/plutoradio/QPSKReceiverWithADALMPLUTORadioSimulinkExample/slprj/_cgxe/plutoradioQPSKReceiverSimulinkExample/src/%.c
+signLib.o :	/Users/musicalmimmi/Desktop/IITH/Sem5/commlab/psk/modified/rx/slprj/_cgxe/plutoradioQPSKReceiverSimulinkExample/src/signLib.c
+	$(CC) -c $(CFLAGS) /Users/musicalmimmi/Desktop/IITH/Sem5/commlab/psk/modified/rx/slprj/_cgxe/plutoradioQPSKReceiverSimulinkExample/src/signLib.c
+%.o : /Users/musicalmimmi/Desktop/IITH/Sem5/commlab/psk/modified/rx/slprj/_cgxe/plutoradioQPSKReceiverSimulinkExample/src/%.c
 	$(CC) -c $(CFLAGS) $<

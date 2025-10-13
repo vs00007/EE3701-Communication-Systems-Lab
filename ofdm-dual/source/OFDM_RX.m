@@ -59,7 +59,6 @@ Frame_After_Coarse = Frame_DWN_sampling.*exp(-j*2*pi*f_Coarse_est*Parameters_str
 z = Frame_After_Coarse(Short_preamble_slot_length*12+1:Short_preamble_slot_length*16)*Frame_After_Coarse(Short_preamble_slot_length*16+1:Short_preamble_slot_length*20)'; % [1x64]*[64x1]=[1x1]
 f_Fine_est = (-1/(2*pi*64*Parameters_struct.Ts))*angle(z);
 Frame_After_Fine = Frame_After_Coarse.*exp(-j*2*pi*f_Fine_est*Parameters_struct.Ts*(0:480-1)); % [1x160]
-%% Symbol Timing Estimation
 %% Channel Estimation
 Long_preamble_1 = Frame_After_Fine(Short_preamble_slot_length*12+1:Short_preamble_slot_length*16); % [1x64]
 Long_preamble_2 = Frame_After_Fine(Short_preamble_slot_length*16+1:Short_preamble_slot_length*20); % [1x64]

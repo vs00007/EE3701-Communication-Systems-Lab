@@ -2,7 +2,7 @@ clear;close all;clc;j=1i;
 Global_Parameters;
 %% Hardware Parameters
 Mode='transmitRepeat'; % Select Mode
-tx_object = sdrtx('Pluto','Gain',-10, 'CenterFrequency', 1e9);
+tx_object = sdrtx('Pluto','Gain',-10, 'CenterFrequency', 0.915e9);
 %          'EnableBurstMode',1,...
 
 %% Button Setting

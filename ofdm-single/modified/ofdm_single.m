@@ -7,7 +7,7 @@ clear; close all; clc;
 %% Parameters / TX design
 alpha = 0.125;    % RRC rolloff
 L     = 30;       % truncated impulse length (-L/2 : L/2)
-Nc    = 16;       % samples per symbol (upsampling)
+Nc    = 2;       % samples per symbol (upsampling)
 istrt = floor(L/2);
 n     = -istrt:1/Nc:istrt;
 pt    = truncRRC(n, alpha, 0);   % root RRC pulse (tx & rx)
@@ -22,7 +22,7 @@ Np  = 30;             % cyclic prefix length
 % Modulation
 M      = 4;
 mb     = log2(M);
-psklev = exp(1j*2*pi*(0:M-1)/M);
+psklev = exp(1j*2*pi*(0:M-1)/M + 1j*pi*0.25);
 
 % Data size
 nSym   = 1e3;       % data symbols (excluding training)

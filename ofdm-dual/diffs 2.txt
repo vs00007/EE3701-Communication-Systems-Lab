@@ -1,0 +1,7 @@
+1. Added multi-tap channel estimation and equalisation (in modified)
+
+== Rewrite ==
+2. Rewrote the entire code to be more reusable with Classes.
+3. SDR Helper can be universaly used for any mod-demod schemes, as it is an abstraction layer for tx and rx
+4. OFDM Helper can be used for OFDM functionality.
+5. This ecosystem is extensible to include more helper classes to perform the modem functionality.
