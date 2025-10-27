@@ -1,194 +1,228 @@
-clear; clc; close all;
+%% OFDM Transmitter Main Script
+% Transmits a text message using ADALM PLUTO SDR and OFDM modulation
+% Author: [Your Name]
+% Date: [Date]
 
-%% Parameters
-sampleRate = 1e6;
-centerFrequency = 0.915e9;
-txGain = -20;
-rxGain = 40;
+clear; close all; clc;
+
+%% ============ USER CONFIGURATION ============
+MESSAGE = 'Hello OFDM World! Testing 123.';  % Your message here
+CENTER_FREQ = 915e6;                          % 915 MHz (ISM band)
+SAMPLE_RATE = 2e6;                            % 2 MHz baseband sample rate
+TX_GAIN = -20;                                % TX gain in dB
+TRANSMIT_MODE = 'repeat';                     % 'single' or 'repeat'
+REPEAT_DURATION = 30;                         % seconds (if repeat mode)
 
 % OFDM Parameters
-Nc = 64;
-Ndata = 48;
-Npilot = 4;
-cpLength = 16;
-modulationOrder = 4;
-nPayloadSymbols = 2;
-ovsamplingFactor = 2;
+Nc = 64;                    % FFT size
+Ndata = 48;                 % Data subcarriers
+Npilot = 4;                 % Pilot subcarriers
+cpLength = 16;              % Cyclic prefix length
+modulationOrder = 4;        % 4-PSK (2 bits per symbol)
+ovsamplingFactor = 2;       % Oversampling factor
 
-%% Initialize Objects
+%% ============ MESSAGE ENCODING ============
+fprintf('\n========================================\n');
+fprintf('OFDM TRANSMITTER INITIALIZATION\n');
+fprintf('========================================\n');
+
+% Convert string to binary
+messageBinary = string2binary(MESSAGE);
+fprintf('Message: "%s"\n', MESSAGE);
+fprintf('Message length: %d characters\n', length(MESSAGE));
+fprintf('Binary length: %d bits\n', length(messageBinary));
+
+% Calculate number of OFDM symbols needed
+bitsPerSymbol = Ndata * log2(modulationOrder);
+nPayloadSymbols = ceil(length(messageBinary) / bitsPerSymbol);
+fprintf('Bits per OFDM symbol: %d\n', bitsPerSymbol);
+fprintf('OFDM symbols required: %d\n', nPayloadSymbols);
+
+% Pad message to fill all symbols
+totalBitsNeeded = nPayloadSymbols * bitsPerSymbol;
+paddingBits = totalBitsNeeded - length(messageBinary);
+messageBinaryPadded = [messageBinary, zeros(1, paddingBits)];
+fprintf('Padding bits added: %d\n', paddingBits);
+
+%% ============ OFDM MODULATION ============
+fprintf('\n--- OFDM Modulation ---\n');
+
+% Create OFDM helper
 ofdm = OFDMHelper(Nc, Ndata, Npilot, cpLength, modulationOrder, ...
-                  nPayloadSymbols, sampleRate, ovsamplingFactor);
+                  nPayloadSymbols, SAMPLE_RATE, ovsamplingFactor);
 
-sdr = SDRHelper('sampleRate', sampleRate, ...
-                'centerFrequency', centerFrequency, ...
-                'txGain', txGain, ...
-                'rxGain', rxGain, ...
-                'radioID', "usb:0",...
-                'txFrameLength', 4096, ...
-                'rxFrameLength', 8192);
+% Print OFDM configuration
+ofdm.printSummary();
 
-% Save configurations
-ofdm.saveConfig('ofdm_config.mat');
-
-%% Mode Selection
-% 1 for TX, 2 for RX
-mode = 1;
-
-switch mode
-    case 1
-        %% TRANSMIT MODE
-        fprintf('\n=== TRANSMIT MODE ===\n');
-       
-            % Connect and configure SDR for TX
-            sdr.connect();
-            sdr.configureTx();
-            
-            % Generate random data for payload symbols
-            payloadData = cell(1, nPayloadSymbols);
-            for i = 1:nPayloadSymbols
-                payloadData{i} = randi([0 modulationOrder-1], 1, Ndata);
-            end
-            
-            % Save payload data for RX reference
-            save('tx_payload_data.mat', 'payloadData');
-            
-            % Generate OFDM frame
-            txSignal = ofdm.getTransmitFrame(payloadData{:});
-            
-            fprintf('Frame: %d samples, %.2f ms duration\n', ...
-                    length(txSignal), length(txSignal)/(sampleRate*ovsamplingFactor)*1000);
-            
-            % Visualization
-            figure('Name', 'TX Signal Analysis');
-            subplot(2,2,1);
-            t = (0:length(txSignal)-1) * (1/(sampleRate*ovsamplingFactor)) * 1e6;
-            plot(t, real(txSignal));
-            title('TX Signal - Real Part');
-            xlabel('Time (μs)'); ylabel('Amplitude'); grid on;
-            
-            subplot(2,2,2);
-            plot(t, imag(txSignal));
-            title('TX Signal - Imaginary Part');
-            xlabel('Time (μs)'); ylabel('Amplitude'); grid on;
-            
-            subplot(2,2,3);
-            plot(txSignal, '.');
-            title('TX Constellation');
-            xlabel('In-phase'); ylabel('Quadrature');
-            axis equal; grid on;
-            
-            subplot(2,2,4);
-            [psd, f] = pwelch(txSignal, [], [], [], sampleRate*ovsamplingFactor, 'centered');
-            plot(f/1e6, 10*log10(psd));
-            title('TX Signal PSD');
-            xlabel('Frequency (MHz)'); ylabel('PSD (dB/Hz)'); grid on;
-            
-            % Start transmission
-            fprintf('Starting transmission (press Enter to stop)...\n');
-            sdr.transmit(txSignal, 'repeat', true);
-           
-        
-    case 2
-        %% RECEIVE MODE
-        fprintf('\n=== RECEIVE MODE ===\n');
-        
-        try
-            % Load OFDM configuration
-            ofdm_rx = OFDMHelper();
-            ofdm_rx = ofdm_rx.loadConfig('ofdm_config.mat');
-            
-            % Configure SDR for RX
-            sdr.connect();
-            sdr.configureRx();
-            
-            % Receive signal
-            rxDuration = 3;
-            fprintf('Receiving for %d seconds...\n', rxDuration);
-            [rxSignal, success] = step(sdr.rxSDR);
-            
-            if success
-                fprintf('Received %d samples\n', length(rxSignal));
-                
-                % Basic RX signal analysis
-                figure('Name', 'Received Signal Overview');
-                subplot(2,2,1);
-                plot(real(rxSignal(1:min(2000, end))));
-                title('RX Signal - Real Part');
-                xlabel('Sample'); ylabel('Amplitude'); grid on;
-                
-                subplot(2,2,2);
-                plot(imag(rxSignal(1:min(2000, end))));
-                title('RX Signal - Imaginary Part');
-                xlabel('Sample'); ylabel('Amplitude'); grid on;
-                
-                subplot(2,2,3);
-                plot(rxSignal(1:min(2000, end)), '.');
-                title('RX Constellation');
-                xlabel('Real'); ylabel('Imaginary');
-                axis equal; grid on;
-                
-                subplot(2,2,4);
-                [psd, f] = pwelch(rxSignal, [], [], [], sampleRate, 'centered');
-                plot(f/1e6, 10*log10(psd));
-                title('RX Signal PSD');
-                xlabel('Frequency (MHz)'); ylabel('PSD (dB/Hz)'); grid on;
-                
-                    % OFDM demodulation
-                    fprintf('Attempting OFDM demodulation...\n');
-                    try
-                        [decodedBits, rxMetrics] = ofdm_rx.receiveFrame(rxSignal);
-                        
-                        fprintf('Decoded %d payload symbols\n', length(decodedBits));
-                        fprintf('Coarse CFO: %.2f Hz, Fine CFO: %.2f Hz\n', ...
-                                rxMetrics.coarseCFO, rxMetrics.fineCFO);
-                        fprintf('Packet start: %d\n', rxMetrics.packetStart);
-                        
-                        % Show basic RX processing plots
-                        figure('Name', 'RX Processing Results');
-                        subplot(2,2,1);
-                        plot(rxMetrics.M_n);
-                        title('Packet Detection Metric');
-                        xlabel('Sample'); ylabel('Correlation'); grid on;
-                        
-                        subplot(2,2,2);
-                        plot(abs(rxMetrics.H_est));
-                        title('Channel Estimate');
-                        xlabel('Subcarrier'); ylabel('|H|'); grid on;
-                        
-                        subplot(2,2,3);
-                        plot(rxMetrics.rxPayloads.withEqualizer{1}, 'o');
-                        title('RX Constellation (Symbol 1)');
-                        xlabel('In-phase'); ylabel('Quadrature');
-                        axis equal; grid on;
-                        
-                        subplot(2,2,4);
-                        bar([rxMetrics.coarseCFO, rxMetrics.fineCFO]);
-                        title('CFO Estimates');
-                        set(gca, 'XTickLabel', {'Coarse', 'Fine'});
-                        ylabel('Frequency (Hz)'); grid on;
-                        
-                        % BER calculation if TX data available
-                        if exist('tx_payload_data.mat', 'file')
-                            load('tx_payload_data.mat', 'payloadData');
-                            BER = ofdm_rx.calculateBER(decodedBits, payloadData);
-                            fprintf('Bit Error Rate: %.4f\n', BER);
-                        end
-                    
-                catch demodError
-                    fprintf('OFDM demodulation failed: %s\n', demodError.message);
-                    fprintf('Possible causes: No signal, low SNR, timing issues\n');
-                end
-            else
-                fprintf('Reception failed\n');
-            end
-            
-        catch ME
-            fprintf('RX Error: %s\n', ME.message);
-        end
-        
-    otherwise
-        fprintf('Invalid mode selection\n');
+% Convert bits to symbols (Gray coded)
+payloadData = cell(1, nPayloadSymbols);
+for i = 1:nPayloadSymbols
+    startIdx = (i-1) * bitsPerSymbol + 1;
+    endIdx = i * bitsPerSymbol;
+    symbolBits = messageBinaryPadded(startIdx:endIdx);
+    
+    % Group bits into log2(M) bit groups and convert to symbols
+    bitsPerModSymbol = log2(modulationOrder);
+    numModSymbols = bitsPerSymbol / bitsPerModSymbol;
+    symbols = zeros(1, numModSymbols);
+    
+    for j = 1:numModSymbols
+        bitStartIdx = (j-1) * bitsPerModSymbol + 1;
+        bitEndIdx = j * bitsPerModSymbol;
+        bitGroup = symbolBits(bitStartIdx:bitEndIdx);
+        symbols(j) = bi2de(bitGroup, 'left-msb');
+    end
+    
+    payloadData{i} = symbols;
 end
 
+% Generate OFDM frame
+fprintf('Generating OFDM frame...\n');
+txFrame = ofdm.generateFrame(payloadData{:});
+fprintf('Frame generated: %d samples\n', length(txFrame));
+
+% Apply pulse shaping
+fprintf('Applying pulse shaping...\n');
+txSignal = ofdm.applyPulseShaping(txFrame);
+fprintf('TX signal length: %d samples (%.2f ms)\n', ...
+    length(txSignal), length(txSignal) * ofdm.Ts * 1000);
+
+% Calculate PAPR
+instantPower = abs(txSignal).^2;
+avgPower = mean(instantPower);
+peakPower = max(instantPower);
+PAPR = 10*log10(peakPower/avgPower);
+fprintf('PAPR: %.2f dB\n', PAPR);
+
+%% ============ SAVE CONFIGURATION ============
+fprintf('\n--- Saving Configuration ---\n');
+
+% Save OFDM configuration for receiver
+ofdm.saveConfig('ofdm_tx_config.mat');
+
+% Save transmission metadata
+txMetadata = struct();
+txMetadata.message = MESSAGE;
+txMetadata.messageBinary = messageBinary;
+txMetadata.paddingBits = paddingBits;
+txMetadata.payloadData = payloadData;
+txMetadata.centerFreq = CENTER_FREQ;
+txMetadata.sampleRate = SAMPLE_RATE;
+txMetadata.txGain = TX_GAIN;
+txMetadata.timestamp = datetime('now');
+save('tx_metadata.mat', 'txMetadata');
+fprintf('Metadata saved to tx_metadata.mat\n');
+
+%% ============ VISUALIZE TX SIGNAL ============
+fprintf('\n--- Visualizing TX Signal ---\n');
+
+% Plot transmitter analysis
+ofdm.plotTxSignal(txSignal, payloadData);
+
+% Plot frequency domain
+ofdm.plotFrequencyDomain(txFrame);
+
+% Visualize frame structure
+ofdm.visualizeFrame(txFrame);
+
+%% ============ SDR CONFIGURATION ============
+fprintf('\n--- SDR Configuration ---\n');
+
+% Create SDR helper
+sdr = SDRHelper('sampleRate', SAMPLE_RATE, ...
+                'centerFrequency', CENTER_FREQ, ...
+                'txGain', TX_GAIN, ...
+                'txFrameLength', length(txSignal));
+
+% Connect to hardware
+fprintf('Connecting to ADALM PLUTO...\n');
+try
+    sdr.connect();
+    fprintf('✓ Connection successful\n');
+catch ME
+    fprintf('✗ Connection failed: %s\n', ME.message);
+    fprintf('Please check:\n');
+    fprintf('  1. PLUTO is connected via USB\n');
+    fprintf('  2. Drivers are installed\n');
+    fprintf('  3. Device is recognized by MATLAB\n');
+    return;
+end
+
+% Configure transmitter
+fprintf('Configuring transmitter...\n');
+sdr.configureTx();
+fprintf('✓ Transmitter configured\n');
+
+%% ============ TRANSMIT ============
+fprintf('\n========================================\n');
+fprintf('TRANSMISSION\n');
+fprintf('========================================\n');
+fprintf('Center Frequency: %.2f MHz\n', CENTER_FREQ/1e6);
+fprintf('Sample Rate: %.2f MHz\n', SAMPLE_RATE/1e6);
+fprintf('TX Gain: %.1f dB\n', TX_GAIN);
+fprintf('Signal Length: %d samples\n', length(txSignal));
+fprintf('Mode: %s\n', TRANSMIT_MODE);
+
+if strcmp(TRANSMIT_MODE, 'repeat')
+    fprintf('\n⚠ WARNING: Ensure you have proper license for transmission!\n');
+    fprintf('⚠ Use appropriate antennas and filtering.\n');
+    fprintf('⚠ Transmission will repeat for %d seconds.\n\n', REPEAT_DURATION);
+    
+    response = input('Start transmission? (y/n): ', 's');
+    if ~strcmpi(response, 'y')
+        fprintf('Transmission cancelled.\n');
+        sdr.cleanup();
+        return;
+    end
+    
+    % Transmit in repeat mode
+    fprintf('\n🔊 TRANSMITTING...\n');
+    fprintf('Press Ctrl+C to stop early\n\n');
+    
+    [success, underflow] = sdr.transmit(txSignal, 'repeat', true, ...
+                                        'duration', REPEAT_DURATION);
+    
+    if success
+        fprintf('\n✓ Transmission completed successfully\n');
+    else
+        fprintf('\n✗ Transmission failed\n');
+    end
+    
+else
+    % Single transmission
+    fprintf('\n🔊 Transmitting once...\n');
+    [success, underflow] = sdr.transmit(txSignal, 'repeat', false);
+    
+    if success
+        fprintf('✓ Transmission completed\n');
+        if underflow
+            fprintf('⚠ Warning: TX underflow occurred\n');
+        end
+    else
+        fprintf('✗ Transmission failed\n');
+    end
+end
+
+%% ============ CLEANUP ============
+fprintf('\n--- Cleanup ---\n');
 sdr.cleanup();
-fprintf('Done.\n');
+fprintf('SDR released\n');
+
+fprintf('\n========================================\n');
+fprintf('TRANSMISSION COMPLETE\n');
+fprintf('========================================\n');
+fprintf('Configuration saved for receiver:\n');
+fprintf('  - ofdm_tx_config.mat\n');
+fprintf('  - tx_metadata.mat\n');
+fprintf('\nRun ofdm_rx_main.m to receive and decode.\n\n');
+
+%% ============ HELPER FUNCTIONS ============
+function binaryArray = string2binary(str)
+    % Convert string to binary array
+    asciiValues = double(str);
+    binaryStrings = dec2bin(asciiValues, 8);
+    binaryArray = [];
+    for i = 1:size(binaryStrings, 1)
+        binaryArray = [binaryArray, str2num(binaryStrings(i,:).').'];
+    end
+end
